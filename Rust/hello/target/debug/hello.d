@@ -1,1 +1,0 @@
-/Users/Ryuta/Documents/program/forgit/StudyProgramming/Rust/hello/target/debug/hello.dSYM: /Users/Ryuta/Documents/program/forgit/StudyProgramming/Rust/hello/src/euc.rs /Users/Ryuta/Documents/program/forgit/StudyProgramming/Rust/hello/src/main.rs
