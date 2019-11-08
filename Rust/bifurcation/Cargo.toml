@@ -1,0 +1,11 @@
+
+[package]
+name = "bifurcation"
+version = "0.1.0"
+authors = ["Syata Kurasi <soccer_Rs0515@yahoo.co.jp>"]
+
+[dependencies]
+rayon = "0.5.0"
+rand = "0.7.2"
+nalgebra = "0.18"
+approx = "0.3.2"
