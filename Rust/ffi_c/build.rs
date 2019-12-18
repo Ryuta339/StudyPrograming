@@ -1,6 +1,5 @@
 extern crate cc;
 
-use std::path::Path;
 
 fn main () {
     println!("cargo:rustc-link-search=native=/Applications/MATLAB_R2018a.app/bin/maci64");
@@ -9,9 +8,9 @@ fn main () {
 
     cc::Build::new()
         // .cpp(true)  // in the case of C++ 
-        .files (vec!["src/hello.c","src/double.c","src/matcreat.c"])
-        .object ("/Applications/MATLAB_R2018a.app/bin/maci64/libmx.dylib")
-        .object ("/Applications/MATLAB_R2018a.app/bin/maci64/libmat.dylib")
+        .files (vec!["src/hello.c","src/double.c","src/matcreat.c", "src/doublesave.c"])
+//        .object ("/Applications/MATLAB_R2018a.app/bin/maci64/libmx.dylib")
+//        .object ("/Applications/MATLAB_R2018a.app/bin/maci64/libmat.dylib")
         .include ("/Applications/MATLAB_R2018a.app/extern/include")
         .compile ("libfoo.a");
 }
