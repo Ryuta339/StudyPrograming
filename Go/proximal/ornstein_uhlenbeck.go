@@ -254,6 +254,9 @@ func plotDistb (state, distb mat.Vector, filename string, time, a, beta, mu0, st
 	if err := p.Save (3*vg.Inch, 3*vg.Inch, filename+".eps"); err != nil {
 		panic (err)
 	}
+	if err := p.Save (3*vg.Inch, 3*vg.Inch, filename+".svg"); err != nil {
+		panic (err)
+	}
 }
 
 func plotMain (stateVals, distbs []mat.Vector, a, beta, h, mu0, stddev0 float64) {
