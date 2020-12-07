@@ -4,6 +4,8 @@ use clap::Clap;
 use std::fs::File;
 use std::io::{stdin, BufRead, BufReader};
 
+use std::path::PathBuf;
+
 struct RpnCalculator(bool);
 
 impl RpnCalculator {
@@ -66,7 +68,7 @@ struct Opts {
 
     /// Formulas written in RPN
     #[clap(name = "FILE")]
-    formula_file: Option<String>,
+    formula_file: Option<PathBuf>,
 }
 
 fn main () -> Result<()> {
