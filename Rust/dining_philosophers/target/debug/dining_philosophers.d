@@ -1,0 +1,1 @@
+/Users/Ryuta/Documents/program/forgit/StudyProgramming/Rust/dining_philosophers/target/debug/dining_philosophers.dSYM: /Users/Ryuta/Documents/program/forgit/StudyProgramming/Rust/dining_philosophers/src/main.rs
