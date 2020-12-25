@@ -1,68 +1,12 @@
 import java.io.*;
 import java.net.*;
-import java.text.*;
-import java.util.*;
+import java.nio.file.*;
 
 public class ServerThread implements Runnable {
-	private static final String DOCUMENT_ROOT = "template";
+	private static final String DOCUMENT_ROOT = System.getProperty("user.dir") + "/template";
+	private static final String ERROR_DOCUMENT = "error_document";
+	private static final String SERVER_NAME = "0.0.0.0:8001";
 	private Socket socket;
-
-	private static final HashMap<String, String> contentTypeMap = 
-		new HashMap<String, String>() {{
-			put ("html", "text/html");
-			put ("htm", "text/htm");
-			put ("txt", "text/plain");
-			put ("css", "text/css");
-			put ("png", "image/png");
-			put ("jpg", "image/jpg");
-			put ("jpeg", "image/jpeg");
-			put ("gif", "image/gif");
-		}
-	};
-	
-	private static String getContentType (String ext) {
-		String ret = contentTypeMap.get (ext.toLowerCase());
-		if (ret == null) {
-			return "application/octet-stream";
-		} else {
-			return ret;
-		}
-	}
-
-	private static String readLine (InputStream input) throws Exception {
-		int ch;
-		String ret = "";
-		while ((ch = input.read()) != -1) {
-			if (ch == '\r') {
-				// do nothing
-			} else if (ch == '\n') {
-				break;
-			} else {
-				ret += (char) ch;
-			}
-		}
-		if (ch == -1) {
-			return null;
-		} else {
-			return ret;
-		}
-	}
-
-	private static void writeLine (OutputStream output, String str) 
-			throws Exception {
-		for (char ch: str.toCharArray()) {
-			output.write((int)ch);
-		}
-		output.write('\r');
-		output.write('\n');
-	}
-
-	private static String getDateStringUtc() {
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-		DateFormat df = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.US);
-		df.setTimeZone(cal.getTimeZone());
-		return df.format(cal.getTime()) + " GMT";
-	}
 
 	@Override
 	public void run () {
@@ -73,32 +17,52 @@ public class ServerThread implements Runnable {
 			String line;
 			String path = null;
 			String ext = null;
-			while ((line = readLine(input)) != null) {
+			String host = null;
+			while ((line = Util.readLine(input)) != null) {
 				if (line == "")
 					break;
 				if (line.startsWith("GET")) {
-					path = line.split(" ")[1];
+					path = MyURLDecoder.decode(line.split(" ")[1], "UTF-8");
 					String[] tmp = path.split("\\.");
-					ext = tmp[tmp.length - 1];;;;
+					ext = tmp[tmp.length - 1];
+				} else if (line.startsWith("Host:")) {
+					host = line.substring ("Host: ".length());
 				}
 			}
-			output = socket.getOutputStream();
+			if (path == null)
+				return;
 
-			// return response header
-			writeLine (output, "HTTP/1.1 200 OK");
-			writeLine (output, "Date: " + getDateStringUtc());
-			writeLine (output, "Server: Modoki/0.1");
-			writeLine (output, "Connection: close");
-			writeLine (output, "Content-Type: " + getContentType (ext));
-			writeLine (output, "");
+			if (path.endsWith("/")) {
+				path += "index.html";
+				ext = "html";
+			}
+			output = new BufferedOutputStream(socket.getOutputStream());
 
-			// return response body
-			try (FileInputStream fis
-					= new FileInputStream(DOCUMENT_ROOT + path); ) {
-				int ch;
-				while ((ch = fis.read()) != -1) {
-					output.write(ch);
-				}
+			FileSystem fs = FileSystems.getDefault();
+			Path pathObj = fs.getPath(DOCUMENT_ROOT + path);
+			Path realPath;
+			try {
+				realPath = pathObj.toRealPath();
+			} catch  (NoSuchFileException e) {
+				SendResponse.sendNotFoundResponse(output, ERROR_DOCUMENT);
+				return;
+			}
+			if (!realPath.startsWith(DOCUMENT_ROOT)) {
+				SendResponse.sendNotFoundResponse(output, ERROR_DOCUMENT);
+				return;
+			} else if (Files.isDirectory(realPath)) {
+				String location = "http://"
+					+ ((host == null) ? SERVER_NAME : host)
+					+ path + "/";
+				SendResponse.sendMovePermanentlyResponse (output, location);
+				return;
+			}
+
+			try (InputStream is
+					= new BufferedInputStream(Files.newInputStream(realPath))) {
+				SendResponse.sendOkResponse(output, is, ext);
+			} catch (Exception e) {
+				e.printStackTrace ();
 			}
 		} catch (Exception e) {
 			e.printStackTrace ();

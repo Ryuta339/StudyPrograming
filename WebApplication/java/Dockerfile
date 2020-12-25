@@ -8,6 +8,8 @@ COPY ./server_send.txt /usr/src/server_send.txt
 WORKDIR /usr
 RUN mkdir -p template
 COPY ./template/* template/
+RUN mkdir -p error_document
+COPY ./error_document/* error_document/
 RUN mkdir -p bin
 RUN javac -d bin src/*.java
 
