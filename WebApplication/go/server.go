@@ -4,27 +4,22 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
-	"time"
 )
 
 const (
-	DOCUMENT_ROOT = "template"
+	DOCUMENT_ROOT  = "/go/template"
+	ERROR_DOCUMENT = "error_document"
+	SERVER_NAME    = "0.0.0.0:8001"
 )
 
-func writeLine(w *bufio.Writer, str string) error {
-	_, err := w.WriteString(str + "\n")
-	if err != nil {
-		return err
-	}
-	err = w.Flush()
-	return err
-}
-
 func run(conn net.Conn) {
-	var path string
-	var ext string
+	var path string = ""
+	var ext string = ""
+	var host string = ""
 
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
@@ -34,54 +29,58 @@ func run(conn net.Conn) {
 			break
 		}
 		if strings.HasPrefix(line, "GET") {
-			path = strings.Split(line, " ")[1]
+			path, _ = url.PathUnescape(strings.Split(line, " ")[1])
 			tmp := strings.Split(path, ".")
 			ext = tmp[len(tmp)-1]
+		} else if strings.HasPrefix(line, "Host:") {
+			host = line[:len("Host: ")]
 		}
 		line, err = reader.ReadString('\n')
 	}
-	fmt.Println(path, ext)
+	if path == "" {
+		return
+	}
+
+	if strings.HasSuffix(path, "/") {
+		path += "index.html"
+		ext = "html"
+	}
 	// Write Header
 	writer := bufio.NewWriter(conn)
-	writeLine(writer, "HTTP/1.1 200 OK")
-	writeLine(writer, "Date: "+getDateStringUtc())
-	writeLine(writer, "Server: Modoki/0.1")
-	writeLine(writer, "Connection: close")
-	writeLine(writer, "Content-Type: "+getContentType(ext))
-	writeLine(writer, "")
+	realPath, err := filepath.Abs(DOCUMENT_ROOT + path)
+	if err != nil {
+		sendNotFoundResponse(writer, ERROR_DOCUMENT)
+		return
+	}
+	fInfo, err := os.Stat(realPath)
+	if err != nil {
+		sendNotFoundResponse(writer, ERROR_DOCUMENT)
+		return
+	}
+
+	if !strings.HasPrefix(realPath, DOCUMENT_ROOT) {
+		sendNotFoundResponse(writer, ERROR_DOCUMENT)
+		return
+	} else if fInfo.IsDir() {
+		var location string
+		if host != "" {
+			location = "http://" + host + path + "/"
+		} else {
+			location = "http://" + SERVER_NAME + path + "/"
+		}
+		sendMovePermanentlyResponse(writer, location)
+		return
+	}
 
 	// Write Body
-	fp, err := os.Open(DOCUMENT_ROOT + path)
+	fp, err := os.Open(realPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%+v\n", err)
+		sendNotFoundResponse(writer, ERROR_DOCUMENT)
 		return
 	}
 	defer fp.Close()
-	writer.ReadFrom(fp)
-	writer.Flush()
-}
-
-func getDateStringUtc() string {
-	return time.Now().UTC().Format("Mon, 02 Jan 2006 15:04:05") + " GMT"
-}
-
-var contentTypeMap map[string]string = map[string]string{
-	"html": "text/html",
-	"htm":  "text/htm",
-	"txt":  "text/plain",
-	"css":  "text/css",
-	"jpeg": "image/jpeg",
-	"jpg":  "image/jpg",
-	"png":  "image/png",
-	"gif":  "image/gif",
-}
-
-func getContentType(ext string) (ret string) {
-	ret = contentTypeMap[ext]
-	if ret == "" {
-		ret = "application/octet-stream"
-	}
-	return
+	freader := bufio.NewReader(fp)
+	sendOkResponse(writer, freader, ext)
 }
 
 func main() {
