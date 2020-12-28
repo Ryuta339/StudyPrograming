@@ -49,17 +49,17 @@ func run(conn net.Conn) {
 	writer := bufio.NewWriter(conn)
 	realPath, err := filepath.Abs(DOCUMENT_ROOT + path)
 	if err != nil {
-		sendNotFoundResponse(writer, ERROR_DOCUMENT)
+		NewNotFoundResponse(ERROR_DOCUMENT).sendResponse(writer)
 		return
 	}
 	fInfo, err := os.Stat(realPath)
 	if err != nil {
-		sendNotFoundResponse(writer, ERROR_DOCUMENT)
+		NewNotFoundResponse(ERROR_DOCUMENT).sendResponse(writer)
 		return
 	}
 
 	if !strings.HasPrefix(realPath, DOCUMENT_ROOT) {
-		sendNotFoundResponse(writer, ERROR_DOCUMENT)
+		NewNotFoundResponse(ERROR_DOCUMENT).sendResponse(writer)
 		return
 	} else if fInfo.IsDir() {
 		var location string
@@ -68,19 +68,19 @@ func run(conn net.Conn) {
 		} else {
 			location = "http://" + SERVER_NAME + path + "/"
 		}
-		sendMovePermanentlyResponse(writer, location)
+		NewMovePermanenltyResponse(location).sendResponse(writer)
 		return
 	}
 
 	// Write Body
 	fp, err := os.Open(realPath)
 	if err != nil {
-		sendNotFoundResponse(writer, ERROR_DOCUMENT)
+		NewNotFoundResponse(ERROR_DOCUMENT).sendResponse(writer)
 		return
 	}
 	defer fp.Close()
 	freader := bufio.NewReader(fp)
-	sendOkResponse(writer, freader, ext)
+	NewOkResponse(freader, ext).sendResponse(writer)
 }
 
 func main() {

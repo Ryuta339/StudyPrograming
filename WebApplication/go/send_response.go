@@ -38,28 +38,64 @@ func getContentType(ext string) (ret string) {
 	return
 }
 
-func sendOkResponse(output *bufio.Writer, input *bufio.Reader, ext string) {
+type Response interface {
+	sendResponse(output *bufio.Writer)
+}
+
+type OkResponse struct {
+	input *bufio.Reader
+	ext   string
+}
+
+func NewOkResponse(input *bufio.Reader, ext string) *OkResponse {
+	return &OkResponse{
+		input: input,
+		ext:   ext,
+	}
+}
+
+func (resp *OkResponse) sendResponse(output *bufio.Writer) {
 
 	writeLine(output, "HTTP/1.1 200 OK")
 	writeLine(output, "Date: "+getDateStringUtc())
 	writeLine(output, "Server: Modoki/0.1")
 	writeLine(output, "Connection: close")
-	writeLine(output, "Content-Type: "+getContentType(ext))
+	writeLine(output, "Content-Type: "+getContentType(resp.ext))
 	writeLine(output, "")
 
-	output.ReadFrom(input)
+	output.ReadFrom(resp.input)
 }
 
-func sendMovePermanentlyResponse(output *bufio.Writer, location string) {
+type MovePermanentlyResponse struct {
+	location string
+}
+
+func NewMovePermanenltyResponse(location string) *MovePermanentlyResponse {
+	return &MovePermanentlyResponse{
+		location: location,
+	}
+}
+
+func (resp *MovePermanentlyResponse) sendResponse(output *bufio.Writer) {
 	writeLine(output, "HTTP/1.1 301 Moved Permanently")
 	writeLine(output, "Date: "+getDateStringUtc())
 	writeLine(output, "Server: Modoki/0.2")
-	writeLine(output, "Location: "+location)
+	writeLine(output, "Location: "+resp.location)
 	writeLine(output, "Connection: close")
 	writeLine(output, "")
 }
 
-func sendNotFoundResponse(output *bufio.Writer, errorDocumentRoot string) {
+type NotFoundResponse struct {
+	errorDocumentRoot string
+}
+
+func NewNotFoundResponse(errorDocumentRoot string) *NotFoundResponse {
+	return &NotFoundResponse{
+		errorDocumentRoot: errorDocumentRoot,
+	}
+}
+
+func (resp *NotFoundResponse) sendResponse(output *bufio.Writer) {
 	writeLine(output, "HTTP/1.1 404 Not Found")
 	writeLine(output, "Date: "+getDateStringUtc())
 	writeLine(output, "Server: Modoki/0.1")
@@ -68,7 +104,7 @@ func sendNotFoundResponse(output *bufio.Writer, errorDocumentRoot string) {
 	writeLine(output, "")
 
 	// Write Body
-	fp, err := os.Open(errorDocumentRoot + "/404.html")
+	fp, err := os.Open(resp.errorDocumentRoot + "/404.html")
 	if err != nil {
 		return
 	}
