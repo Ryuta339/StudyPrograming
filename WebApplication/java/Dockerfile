@@ -13,4 +13,4 @@ COPY ./error_document/* error_document/
 RUN mkdir -p bin
 RUN javac -d bin src/*.java
 
-CMD ["java", "-cp", "bin", "Main"]
+CMD ["java", "-cp", "bin", "TestServer"]
