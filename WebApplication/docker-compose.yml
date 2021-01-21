@@ -1,7 +1,7 @@
 hoge-apache:
   build: apache
   ports:
-    - "80:80"
+    - "8080:80"
   container_name: hoge-apache
   volumes:
     - ./var/apache/hoge:/user/local/apache2/htdocs/hoge

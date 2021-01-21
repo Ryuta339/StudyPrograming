@@ -1,5 +1,13 @@
+hoge-tomcat:
+  image: tomcat:latest
+  ports:
+    - "8080:8080"
+  container_name: hoge-tomcat
+
 hoge-java:
   build: .
   ports:
     - "8001:8001"
   container_name: hoge-java
+  links:
+    - hoge-tomcat
